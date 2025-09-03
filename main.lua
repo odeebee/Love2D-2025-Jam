@@ -11,6 +11,9 @@ require "Professor"
 
 --ITEMS
 require "Diploma"
+require "Sofa"
+require "Plant"
+require "Lamp"
 
 --THEME = REVEAL
 screenWidth = 800
@@ -30,7 +33,7 @@ displayGameMain = false
 
 speechText = ""
 
-items = {Diploma}
+items = {Diploma,Sofa,Plant,Lamp}
 inventory = {}
 
 clueNum=0
@@ -135,10 +138,13 @@ end
 
 function searchForItems(x,y)
     for i=1,#items do
-        if x >= items[i].x and x <= items[i].x + 50 and y >= items[i].y and y <= items[i].y + 50  and items[i].clickable == true then
+        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == true then
             speechText = "Picked up " .. items[i].name
             table.insert(inventory,items[i].name)
             items[i].show = false
+        end
+        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == false then
+            speechText = items[i].description
         end
     end
 end
@@ -237,6 +243,7 @@ end
 function drawUI()
     love.graphics.print(speechText)
     love.graphics.print(rooms[currentRoom],0,550)
+    button(725,0,75,30,5,"Inventory")
 end
 
 function setupCharacters()
@@ -258,4 +265,13 @@ end
 function drawTitleScreen()
     love.graphics.print(title,50,50)
     love.graphics.print("Start",50,90)
+end
+
+function button(x,y,width,height,borderSize,text)
+    love.graphics.setColor(255,255,255)
+    love.graphics.rectangle("fill",x,y,width,height)
+    love.graphics.setColor(0,0,0)
+    love.graphics.rectangle("fill",x+borderSize/2,y+borderSize/2,width-borderSize,height-borderSize)
+    love.graphics.setColor(255,255,255)
+    love.graphics.print(text,x+5,y+5)
 end
