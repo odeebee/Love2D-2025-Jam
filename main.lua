@@ -13,7 +13,9 @@ require "Professor"
 require "Diploma"
 require "Sofa"
 require "Plant"
+require "Cabinet"
 require "Lamp"
+require "Pencase"
 
 --THEME = REVEAL
 screenWidth = 800
@@ -33,10 +35,19 @@ displayGameMain = false
 
 speechText = ""
 
-items = {Diploma,Sofa,Plant,Lamp}
+items = {Diploma,Sofa,Plant,Lamp,Cabinet,Pencase}
 inventory = {}
 
+inventoryItemsX = {}
+inventoryItemsY = {}
+
+innocent = {}
+murderer = ""
+
 clueNum=0
+
+selected1 = ""
+selected2 = ""
 
 function love.load()
     tombstone = love.graphics.newImage("Tombstone.png")
@@ -70,6 +81,10 @@ function love.draw()
 
         if currentRoom == 3 then
             drawBedroom()
+        end
+
+        if displayInventory == true then
+            drawInventory()
         end
     end
 end
@@ -112,7 +127,69 @@ function drawItems()
     end
 end
 
+function combine(item1,item2)
+    if item1 == "Diploma" and item2 == "Corrective fluid" then
+        table.remove(inventory,getArrrayIndex("Diploma"))
+        table.remove(inventory,getArrrayIndex("Corrective fluid"))
+        table.insert(inventory,"Blank Diploma")
+    end
+
+    if item1 == "Corrective fluid" and item2 == "Diploma" then
+        table.remove(inventory,getArrrayIndex("Diploma"))
+        table.remove(inventory,getArrrayIndex("Corrective fluid"))
+        table.insert(inventory,"Blank Diploma")
+    end
+
+    if item1 == "Sharpie" and item2 == "Blank Diploma" then
+        table.remove(inventory,getArrrayIndex("Sharpie"))
+        table.remove(inventory,getArrrayIndex("Blank Diploma"))
+        table.insert(inventory,"Faked Diploma")
+    end
+
+    if item1 == "Blank Diploma" and item2 == "Sharpie" then
+        table.remove(inventory,getArrrayIndex("Sharpie"))
+        table.remove(inventory,getArrrayIndex("Blank Diploma"))
+        table.insert(inventory,"Faked Diploma")
+    end
+end
+
+function drawInventory()
+    button(screenWidth/2-200,50,400,400,5,"")
+    button(screenWidth/2+200-25,50,25,25,5,"x")
+    inventoryStartPosX = screenWidth/2 - 200 + 50
+    inventoryStartPosY = 100
+    inventoryY = inventoryStartPosY
+    for i=1,#inventory do
+        if inventory[i] == selected1 or inventory[i] == selected2 then
+            buttonGreen(inventoryStartPosX,inventoryY,100,30,5,inventory[i])
+        else
+            button(inventoryStartPosX,inventoryY,100,30,5,inventory[i])
+        end
+        table.insert(inventoryItemsY,inventoryY)
+        inventoryY = inventoryY + 30 + 5 -- This needs to be the last line of the loop
+    end
+end
+
 function love.mousepressed(x,y,button)
+    if displayInventory == true then
+        inventoryClickX = screenWidth / 2 - 200 + 50
+        for i=1,#inventory do
+            if x >= inventoryClickX and x <= inventoryClickX + 100 and y >= inventoryItemsY[i] and y <= inventoryItemsY[i] + 30 then
+                if selected1 == "" then
+                    selected1 = inventory[i]
+                end
+                if selected2 == "" and inventory[i] ~= selected1 then
+                    selected2 = inventory[i]
+                end
+
+                if selected1 ~= "" and selected2 ~= "" then
+                    combine(selected1,selected2)
+                    selected1 = ""
+                    selected2 = ""
+                end
+            end
+        end
+    end
     --print(button)
     if displayTitleScreen == true then
         if button == 1 then
@@ -132,19 +209,27 @@ function love.mousepressed(x,y,button)
         if button == 1 then
             searchForInteraction(x,y)
             searchForItems(x,y)
+            --Inventory button cords = button(725,0,75,30,5,"Inventory")
+            if x >= 725 and x <= 725 + 75 and y >= 0 and y <= 0 + 30 then
+                displayInventory = true
+            end
         end
     end
 end
 
 function searchForItems(x,y)
     for i=1,#items do
-        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == true then
+        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == true and items[i].room == currentRoom then
             speechText = "Picked up " .. items[i].name
             table.insert(inventory,items[i].name)
             items[i].show = false
         end
-        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == false then
+        if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == false and items[i].room == currentRoom then
             speechText = items[i].description
+            if items[i].name == "Cabinet" then
+                speechText = items[i].description .. " Corrective fluid added to inventory"
+                table.insert(inventory,"Corrective fluid")
+            end
         end
     end
 end
@@ -169,7 +254,14 @@ end
 function displayTalkingText(index,name,y)
     --This function is super ugly, there is definetly a better way of doing it too.. super jank, but it works and I kinda dont care tbh.
 
-    currentClue = "This is the " .. name .. "'s clue " .. tostring(clueNum)
+    --currentClue = "This is the " .. name .. "'s clue " .. tostring(clueNum)
+    --currentClue = ""
+    --Rework this
+    for i=1,#innocent do 
+        if innocent[i].name ~= characters[index].name then
+            currentClue = innocent[i].name .. " couldn't of done it"
+        end
+    end
 
     if name == "Professor" then
         speechText = "'I'm sorry but I only speak to learned men.'"
@@ -182,7 +274,8 @@ function displayTalkingText(index,name,y)
         speechText = "'You must think i'm a halfwit, this diploma obviously is not yours.'"
     end
     if name == "Professor" and isInArray("Faked Diploma") == true and characters[index].gotClue == true then
-        speechText = "'I've already told you detective " .. characters[index].clue .. "'"
+        characters[index].clue = currentClue
+        speechText = "'This is all I know... " .. characters[index].clue .. "'"
     end
 
     if name == "Maid"  and characters[index].gotClue == true then
@@ -206,11 +299,24 @@ function displayTalkingText(index,name,y)
     end
 end
 
+--Helper function HERE
+
 function isInArray(item)
     if #inventory > 0 then
         for i=1,#inventory do
             if inventory[i] == item then
                 return true
+            end
+        end
+    end
+end
+
+function getArrrayIndex(itemName)
+    --This only works on arrays with strings ok!
+    if #inventory > 0 then
+        for i=1,#inventory do
+            if inventory[i] == itemName then
+                return i
             end
         end
     end
@@ -243,6 +349,7 @@ end
 function drawUI()
     love.graphics.print(speechText)
     love.graphics.print(rooms[currentRoom],0,550)
+    love.graphics.print(murderer .. " " .. deadManName,0,575)
     button(725,0,75,30,5,"Inventory")
 end
 
@@ -260,6 +367,20 @@ function killSomeone()
     print(characters[personToBeKilled].name)
     deadManName = characters[personToBeKilled].name
     characters[personToBeKilled].dead = true
+
+    if personToBeKilled < #characters + 1 then
+        murderer = characters[personToBeKilled+1].name
+        characters[personToBeKilled+1].murderer = true
+    else
+        murderer = characters[personToBeKilled-1].name
+        characters[personToBeKilled-1].murderer = true
+    end
+
+    for i=1,#characters do
+        if characters[i].murderer == false and characters[i].dead == false then
+            table.insert(innocent,characters[i])
+        end
+    end
 end
 
 function drawTitleScreen()
@@ -274,4 +395,14 @@ function button(x,y,width,height,borderSize,text)
     love.graphics.rectangle("fill",x+borderSize/2,y+borderSize/2,width-borderSize,height-borderSize)
     love.graphics.setColor(255,255,255)
     love.graphics.print(text,x+5,y+5)
+end
+
+function buttonGreen(x,y,width,height,borderSize,text)
+    love.graphics.setColor(0,255,0)
+    love.graphics.rectangle("fill",x,y,width,height)
+    love.graphics.setColor(0,0,0)
+    love.graphics.rectangle("fill",x+borderSize/2,y+borderSize/2,width-borderSize,height-borderSize)
+    love.graphics.setColor(0,255,0)
+    love.graphics.print(text,x+5,y+5)
+    love.graphics.setColor(255,255,255)
 end
