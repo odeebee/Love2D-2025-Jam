@@ -16,6 +16,10 @@ require "Plant"
 require "Cabinet"
 require "Lamp"
 require "Pencase"
+require "Bed"
+require "Bedsidecabinet"
+require "Mirror"
+require "Painting"
 
 --THEME = REVEAL
 screenWidth = 800
@@ -35,7 +39,17 @@ displayGameMain = false
 
 speechText = ""
 
-items = {Diploma,Sofa,Plant,Lamp,Cabinet,Pencase}
+items = {Diploma,
+        Sofa,
+        Plant,
+        Lamp,
+        Cabinet,
+        Pencase,
+        Bed,
+        Bedsidecabinet,
+        Mirror,
+        Painting
+}
 inventory = {}
 
 inventoryItemsX = {}
@@ -82,6 +96,9 @@ function love.draw()
         if currentRoom == 3 then
             drawBedroom()
         end
+        if currentRoom == 4 then
+            drawLavatory()
+        end
 
         if displayInventory == true then
             drawInventory()
@@ -94,6 +111,9 @@ function love.update()
 end
 
 function tick()
+end
+
+function drawLavatory()
 end
 
 function drawDeadMan()
@@ -171,6 +191,7 @@ function drawInventory()
 end
 
 function love.mousepressed(x,y,button)
+
     if displayInventory == true then
         inventoryClickX = screenWidth / 2 - 200 + 50
         for i=1,#inventory do
@@ -189,6 +210,13 @@ function love.mousepressed(x,y,button)
                 end
             end
         end
+
+        --Inventory exit button coords button(screenWidth/2+200-25,50,25,25,5,"x")
+        if x >= screenWidth/2+200-25 and x <= screenWidth/2+200-25 + 25 and y >= 50 and y <= 50 + 25 then
+            displayInventory = false
+        end
+
+
     end
     --print(button)
     if displayTitleScreen == true then
@@ -227,8 +255,15 @@ function searchForItems(x,y)
         if x >= items[i].x and x <= items[i].x + items[i].width and y >= items[i].y and y <= items[i].y + items[i].length  and items[i].clickable == false and items[i].room == currentRoom then
             speechText = items[i].description
             if items[i].name == "Cabinet" then
+                items[i].name = "CabinetUsed"
                 speechText = items[i].description .. " Corrective fluid added to inventory"
                 table.insert(inventory,"Corrective fluid")
+            end
+
+            if items[i].name == "Mirror" then
+                items[i].name = "MirrorUsed"
+                speechText = items[i].description .. " Poor self image added to inventory"
+                table.insert(inventory,"Poor self image")
             end
         end
     end
@@ -264,7 +299,7 @@ function displayTalkingText(index,name,y)
     end
 
     if name == "Professor" then
-        speechText = "'I'm sorry but I only speak to learned men.'"
+        speechText = "'I'm sorry but I only speak to learned men. Talk to me when you have a diploma' "
     end
     if name == "Professor" and isInArray("Faked Diploma") == true and characters[index].gotClue == false then
         speechText = "'Ah, a fellow savant. Fine ill let you in on what I know... " .. characters[index].clue .. "'"
@@ -296,6 +331,10 @@ function displayTalkingText(index,name,y)
         characters[index].clue = currentClue
         clueNum=clueNum+1
         speechText = "'While I may be a butler.. " .. characters[index].clue .. "'"
+    end
+
+    if name == "Lady" then
+        speechText = "'Im sorry but you smell, and your hair is scruffy please talk to me when you have fixed that.' "
     end
 end
 
