@@ -39,6 +39,12 @@ displayGameMain = false
 
 speechText = ""
 
+indexToTween = 0
+tweening = false
+tweenLeft = true
+tweenSpeed = 0.1
+tweenAdd = 0
+
 items = {Diploma,
         Sofa,
         Plant,
@@ -111,6 +117,17 @@ function love.update()
 end
 
 function tick()
+    print("tick")
+    if tweenAdd > 5 then
+        tweening = false
+        tweenAdd = 0
+    end
+    if tweening == true then
+        characters[indexToTween].x = characters[indexToTween].x + tweenAdd
+        tweenAdd = tweenAdd + tweenSpeed
+        print(tweenAdd)
+    end
+
 end
 
 function drawLavatory()
@@ -241,6 +258,22 @@ function love.mousepressed(x,y,button)
             if x >= 725 and x <= 725 + 75 and y >= 0 and y <= 0 + 30 then
                 displayInventory = true
             end
+        end
+
+        if button == 2 then
+            searchForCharactersToMove(x,y)
+        end
+    end
+end
+
+function searchForCharactersToMove(x,y)
+    for i=1,#characters do
+        if x >= characters[i].x and x <= characters[i].x + 50 and y >= characterY and y <= characterY+50 then
+            if characters[i].dead == true then
+                speechText = "Classy move detective."
+            end
+            indexToTween = i
+            tweening = true
         end
     end
 end
